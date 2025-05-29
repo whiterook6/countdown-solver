@@ -56,4 +56,4 @@ const solve = (target, numbers) => {
   console.log(solveRecursively(target, 0, numbers, '0'));
 };
 
-solve(952, [25, 50, 75, 100, 2, 1]);
+solve(228, [100, 8, 5, 10, 6, 9]);
