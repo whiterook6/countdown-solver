@@ -1,3 +1,5 @@
+import { fullsize } from './utils';
+
 let bestValueSums;
 let bestResult;
 
@@ -150,19 +152,6 @@ function tidyup_result(result) {
 }
 
 const serialise_result = (result) => {
-  const fullsize = (array, levels) => {
-    if (levels < 1 || !Array.isArray(array)) {
-      return 0;
-    }
-
-    return array.reduce((sum, item) => {
-      if (Array.isArray(item)) {
-        return sum + fullsize(item, levels - 1);
-      }
-      return sum + 1; // Count the number itself
-    }, 0);
-  };
-
   let childparts = [];
   for (let i = 2; i < result.length; i++) {
     const child = result[i];
