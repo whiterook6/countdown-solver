@@ -1,42 +1,42 @@
 let bestValueSums;
 let bestResult;
 
-const Operations = {
-  "+": {
-    check: (n1, n2) => n1 > 0 && n2 > 0, // no sense in adding zero or negative numbers
-    apply: (n1, n2) => n1 + n2,
-    cost: 1
-  },
-  "-": {
-    check: (n1, n2) => n1 > n2 && n2 > 0, // no sense in subtracting zero or negative numbers
-    apply: (n1, n2) => n1 - n2,
-    cost: 1.05
-  },
-  "_": {
-    check: (n2, n1) => n1 > n2 && n2 > 0, // no sense in subtracting zero or negative numbers
-    apply: (n2, n1) => n1 - n2,
-    cost: 1.05
-  },
-  "*": {
-    check: (n1, n2) => n1 > 1 && n2 > 1, // no sense in multiplying by zero or one
-    apply: (n1, n2) => n1 * n2,
-    cost: 1.2
-  },
-  "/": {
-    check: (n1, n2) => n2 > 1 && n1 % n2 === 0, // no sense in dividing by zero or one, and only whole numbers
-    apply: (n1, n2) => n1 / n2,
-    cost: 1.3
-  },
-  "?": {
-    check: (n2, n1) => n2 > 1 && n1 % n2 === 0, // no sense in dividing by zero or one, and only whole numbers
-    apply: (n2, n1) => n1 / n2,
-    cost: 1.3
-  }
-}
+const Operations = [{
+  op: "+",
+  check: (n1, n2) => n1 > 0 && n2 > 0, // no sense in adding zero or negative numbers
+  apply: (n1, n2) => n1 + n2,
+  cost: 1
+}, {
+  op: "-",
+  check: (n1, n2) => n1 > n2 && n2 > 0, // no sense in subtracting zero or negative numbers
+  apply: (n1, n2) => n1 - n2,
+  cost: 1.05
+}, {
+  op: "_", // also subtract, but backwards for when left is smaller than right
+  check: (n2, n1) => n1 > n2 && n2 > 0,
+  apply: (n2, n1) => n1 - n2,
+  cost: 1.05
+}, {
+  op: "*",
+  check: (n1, n2) => n1 > 1 && n2 > 1, // no sense in multiplying by zero or one
+  apply: (n1, n2) => n1 * n2,
+  cost: 1.2
+}, {
+  op: "/",
+  check: (n1, n2) => n2 > 1 && n1 % n2 === 0, // no sense in dividing by zero or one, and only whole numbers
+  apply: (n1, n2) => n1 / n2,
+  cost: 1.3
+}, {
+  op: "?", // also divide, but backwards for when left is smaller than right
+  check: (n2, n1) => n2 > 1 && n1 % n2 === 0,
+  apply: (n2, n1) => n1 / n2,
+  cost: 1.3
+}];
 
 const ALREADY_USED = -1;
 const _recurse_solve_numbers = (
   numbers,
+  alreadyUsed,
   previousI,
   wasGenerated,
   target,
@@ -44,57 +44,58 @@ const _recurse_solve_numbers = (
   valueSums
 ) => {
   for (let i = 0; i < numbers.length - 1; i++) {
-    const left = numbers[i];
-    if (left === ALREADY_USED) {
+    if (alreadyUsed[i]) {
       continue;
     }
-    numbers[i] = ALREADY_USED;
+    alreadyUsed[i] = true;
+    const left = numbers[i];
 
     for (let j = i + 1; j < numbers.length; j++) {
-      const right = numbers[j];
-      if (right === ALREADY_USED) {
+      if (alreadyUsed[j]) {
         continue;
       }
+      const right = numbers[j];
 
       if (i < previousI && !wasGenerated[i] && !wasGenerated[j]) {
         continue;
       }
 
-      for (const op in Operations) {
-        if (!Operations[op].check(left[0], right[0])) {
+      for (const operation of Operations) {
+        if (!operation.check(left[0], right[0])) {
           continue;
         }
+        const result = operation.apply(left[0], right[0]);
 
-        const result = Operations[op].apply(left[0], right[0]);
-
+        // calculate the cost of the operation
+        const {op, cost} = operation;
         let opCost = Math.abs(result);
-        while (opCost % 10 === 0 && opCost !== 0) {
-          opCost /= 10;
+        if ((left[0] === 10 || right[0] === 10) && operation.op === '*') {
+          opCost = cost;
+        } else {
+          while (opCost % 10 === 0 && opCost > 0) {
+            opCost /= 10;
+          }
+          opCost *= cost;
         }
-        if ((left[0] === 10 || right[0] === 10) && op === '*') {
-          opCost = 1;
-        }
-        opCost *= Operations[op].cost;
 
-        const newValueSums = valueSums + opCost;
-
+        const totalCost = valueSums + opCost;
         if (
           Math.abs(result - target) < Math.abs(bestResult[0] - target) ||
           (
             Math.abs(result - target) === Math.abs(bestResult[0] - target) &&
-            (newValueSums < bestValueSums)
+            (totalCost < bestValueSums)
           )
         ) {
           bestResult = [result, op, left, right];
-          bestValueSums = newValueSums;
+          bestValueSums = totalCost;
         }
 
         numbers[j] = [result, op, left, right];
         const wasGeneratedJTemp = wasGenerated[j];
         wasGenerated[j] = true;
 
-        if (levels > 1 && (bestResult[0] !== target || newValueSums < bestValueSums)) {
-          _recurse_solve_numbers(numbers, i + 1, wasGenerated, target, levels - 1, newValueSums);
+        if (levels > 1 && (bestResult[0] !== target || totalCost < bestValueSums)) {
+          _recurse_solve_numbers(numbers, alreadyUsed, i + 1, wasGenerated, target, levels - 1, totalCost);
         }
 
         wasGenerated[j] = wasGeneratedJTemp;
@@ -102,11 +103,15 @@ const _recurse_solve_numbers = (
       }
     }
 
-    numbers[i] = left;
+    alreadyUsed[i] = false;
   }
 }
 
 function tidyup_result(result) {
+  if (result.length < 4) {
+    return result;
+  }
+
   const mapping = {
     "?": "/",
     "_": "-"
@@ -116,10 +121,6 @@ function tidyup_result(result) {
     "*": true,
     "+": true
   };
-
-  if (result.length < 4) {
-    return result;
-  }
 
   for (let i = 2; i < result.length; i++) {
     let child = result[i];
@@ -133,7 +134,7 @@ function tidyup_result(result) {
     }
   }
 
-  if (result[1] in mapping) {
+  if (result[1] in mapping) { // swap the operands for reversed operations
     result[1] = mapping[result[1]];
     const j = result[2];
     result[2] = result[3];
@@ -148,23 +149,21 @@ function tidyup_result(result) {
   return result;
 }
 
-function fullsize(array) {
-  if (!Array.isArray(array)) {
-    return 0;
-  }
+const serialise_result = (result) => {
+  const fullsize = (array, levels) => {
+    if (levels < 1 || !Array.isArray(array)) {
+      return 0;
+    }
 
-  let l = 0;
+    return array.reduce((sum, item) => {
+      if (Array.isArray(item)) {
+        return sum + fullsize(item, levels - 1);
+      }
+      return sum + 1; // Count the number itself
+    }, 0);
+  };
 
-  for (let i = 0; i < array.length; i++) {
-    l += fullsize(array[i]);
-  }
-
-  return l + array.length;
-}
-
-function serialise_result(result) {
   let childparts = [];
-
   for (let i = 2; i < result.length; i++) {
     const child = result[i];
 
@@ -174,7 +173,6 @@ function serialise_result(result) {
   }
 
   childparts = childparts.sort((a, b) => fullsize(b) - fullsize(a));
-
   let parts = [];
   for (let i = 0; i < childparts.length; i++) {
     parts = parts.concat(childparts[i]);
@@ -207,16 +205,25 @@ function stringify_result(serialised, target) {
 
 function _solve_numbers(numbers, target) {
   const mappedNumbers = numbers.map(x => [x, false]);
-  const was_generated = Array(numbers.length).fill(false);
+  const wasGenerated = Array(numbers.length).fill(false);
+  const alreadyUsed = Array(numbers.length).fill(false);
 
   bestResult = [0, 0];
 
-  _recurse_solve_numbers(mappedNumbers, 0, was_generated, target, numbers.length, 0);
+  _recurse_solve_numbers(mappedNumbers, alreadyUsed, 0, wasGenerated, target, numbers.length, 0);
 
   return bestResult;
 }
 
 function solve_numbers(numbers, target) {
+  if (target < 101 || target > 999 || !Number.isInteger(target)) {
+    return "Target must be an integer between 101 and 999.";
+  } else if (!Array.isArray(numbers) || numbers.length < 2 || numbers.length > 6) {
+    return "Numbers must be an array of 2 to 6 integers.";
+  } else if (numbers.some(n => !Number.isInteger(n) || n < 1 || n > 100)) {
+    return "All numbers must be integers between 1 and 100.";
+  }
+
   numbers.sort((a, b) => a - b);
   bestResult = [numbers[0], numbers[0]];
 
@@ -241,4 +248,4 @@ function solve_numbers(numbers, target) {
   );
 }
 
-console.log(solve_numbers([25, 50, 75, 100, 4, 6], 821));
+console.log(solve_numbers([50, 75, 5, 1, 6, 10], 544));
