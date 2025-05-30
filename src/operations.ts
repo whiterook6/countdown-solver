@@ -1,11 +1,11 @@
 export const operations = [{
   op: "+",
-  check: (n1, n2) => n1 > 0 && n2 > 0, // no sense in adding zero or negative numbers
+  check: (n1, n2) => n1 > 0 && n2 > 0, // no sense in adding zero or negative numbers (you're never given a negative operand and itermediate results can never be negative)
   apply: (n1, n2) => n1 + n2,
   cost: 1
 }, {
   op: "-",
-  check: (n1, n2) => n1 > n2 && n2 > 0 && n1 - n2 !== n2, // no sense in subtracting zero or negative numbers, or getting back one of the operands
+  check: (n1, n2) => n1 > n2 && n2 > 0 && n1 - n2 !== n2, // no point getting back one of the operands or subtracting zero or a negative number
   apply: (n1, n2) => n1 - n2,
   cost: 1.05
 }, {
