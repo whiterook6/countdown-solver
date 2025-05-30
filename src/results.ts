@@ -7,21 +7,68 @@ import { Step } from "./types";
  *          fullsize([[1]]) => 2
  *          fullsize([1, [2, 3], [4, [5, 6]]]) => 9
  */
-export const fullsize = (array) => {
+const fullsize = (array) => {
   if (!Array.isArray(array) || array.length === 0) {
     return 0;
   }
 
-  return array.reduce((sum, item) => sum + fullsize(item), array.length);
+  return array.reduce((sum, item) => sum + fullsize(item), array.length); // clever, I like starting with the length of the array
 };
 
-export const serialise_result = (result: Step) => {
+export const tidyUpStep = (step: Step) => {
+  if (step.length < 4) {
+    return step;
+  }
+
+  const stepOp = step[1] as string;
+  const commutativeOps = [
+    "+", "*"
+  ];
+
+  for (let i = 2; i < step.length; i++) { // for each operands in this step
+    const childStep = tidyUpStep(step[i] as Step);
+
+    if (childStep[1] === stepOp && commutativeOps.includes(stepOp)) {
+      step.splice(i--, 1);
+      step = step.concat(childStep.slice(2)) as Step;
+    } else {
+      step[i] = childStep;
+    }
+  }
+
+  const mapping = {
+    "?": "/",
+    "_": "-"
+  };
+
+  if (stepOp in mapping) { // swap the operands for reversed operations
+    const j = step[2];
+    step[2] = step[3];
+    step[3] = j;
+    
+    step[1] = mapping[stepOp];
+  } else if (commutativeOps.includes(stepOp)) {
+    const childs = step.slice(2).sort((a, b) => b[0] - a[0]);
+    for (let i = 2; i < step.length; i++) {
+      step[i] = childs[i - 2];
+    }
+  }
+
+  return step;
+}
+
+/**
+ * Takes a step and flattens it into a list of steps with all of the recursion flattened.
+ * All of its child steps happen before this does.
+ * @example [6, *, [3, +, 1, 2], [2, +, 1, 1]] => [[2, +, 1, 1], [3, +, 1, 2], [6, *, 2, 3]]
+ */
+export const stringifyStepAndChildren = (result: Step): Step[] => {
   const childparts = [];
   for (let i = 2; i < result.length; i++) {
     const child = result[i] as Step;
 
     if (child.length >= 4) {
-      childparts.push(serialise_result(child));
+      childparts.push(stringifyStepAndChildren(child));
     }
   }
 
@@ -36,66 +83,26 @@ export const serialise_result = (result: Step) => {
     return l[0]; // only the result of the operation, not the whole step
   })];
 
-  return parts.concat([thispart]);
+  parts.push(thispart);
+  return parts;
 }
 
-export const stringify_result = (serialised: Array<any>, target: number): string[] => {
-  const output = [];
+/**
+ * Turns a list of steps into a list of human-readable math instructions
+ * @example [... [5, +, 1, 1, 1, 1, 1], ...] => [..., '1 + 1 + 1 + 1 + 1 = 5', ...]
+ * Also adds a note if the result is not equal to the target
+ */
+export const stringifyStep = (serialised: Array<Step>, target: number): string[] => {
+  const output: string[] = serialised.map(step => {
+    const args = step.slice(2);
+    return `${args.join(` ${step[1]} `)} = ${step[0]}`; // turn [5, +, 1, 1, 1, 1, 1] into `1 + 1 + 1 + 1 + 1 = 5`
+  });
 
-  serialised = serialised.slice(0);
-
-  for (let i = 0; i < serialised.length; i++) {
-    const x = serialised[i];
-    const args = x.slice(2);
-    output.push(args.join(' ' + x[1] + ' ') + ' = ' + x[0]);
-  }
-
-  const result = serialised[serialised.length - 1][0];
-  if (result !== target) {
-    output.push('(off by ' + Math.abs(result - target) + ')');
+  const lastStep = serialised[serialised.length - 1];
+  const distanceFromTarget = Math.abs(lastStep[0] - target);
+  if (distanceFromTarget > 0) {
+    output.push(`(off by ${distanceFromTarget})`);
   }
 
   return output;
-}
-
-export const tidyup_result = (result) => {
-  if (result.length < 4) {
-    return result;
-  }
-
-  const mapping = {
-    "?": "/",
-    "_": "-"
-  };
-
-  const swappable = {
-    "*": true,
-    "+": true
-  };
-
-  for (let i = 2; i < result.length; i++) {
-    let child = result[i];
-    child = tidyup_result(child);
-
-    if (child[1] === result[1] && swappable[result[1]]) {
-      result.splice(i--, 1);
-      result = result.concat(child.slice(2));
-    } else {
-      result[i] = child;
-    }
-  }
-
-  if (result[1] in mapping) { // swap the operands for reversed operations
-    result[1] = mapping[result[1]];
-    const j = result[2];
-    result[2] = result[3];
-    result[3] = j;
-  } else if (swappable[result[1]]) {
-    const childs = result.slice(2).sort((a, b) => b[0] - a[0]);
-    for (let i = 2; i < result.length; i++) {
-      result[i] = childs[i - 2];
-    }
-  }
-
-  return result;
 }

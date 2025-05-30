@@ -1,4 +1,4 @@
-import { serialise_result, stringify_result, tidyup_result } from './results';
+import { stringifyStepAndChildren, stringifyStep, tidyUpStep } from './results';
 import { _solve_numbers } from './solver';
 
 
@@ -12,15 +12,11 @@ function solve_numbers(numbers, target, stopEarly = true) {
   }
 
   numbers.sort((a, b) => a - b);
-
-  return stringify_result(
-    serialise_result(
-      tidyup_result(
-        _solve_numbers(numbers, target, stopEarly)
-      )
-    ),
-    target
-  ).join("\n");
+  const results = _solve_numbers(numbers, target, stopEarly);
+  const tidiedResults = tidyUpStep(results);
+  const serialisedResults = stringifyStepAndChildren(tidiedResults);
+  const stringifiedResults = stringifyStep(serialisedResults, target);
+  return stringifiedResults.join("\n");
 }
 
-console.log(solve_numbers([50, 75, 5, 1, 6, 10], 542));
+console.log(solve_numbers([50, 75, 3, 1, 8, 10], 542));

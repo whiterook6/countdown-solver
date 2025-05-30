@@ -5,12 +5,12 @@ export const operations = [{
   cost: 1
 }, {
   op: "-",
-  check: (n1, n2) => n1 > n2 && n2 > 0, // no sense in subtracting zero or negative numbers
+  check: (n1, n2) => n1 > n2 && n2 > 0 && n1 - n2 !== n2, // no sense in subtracting zero or negative numbers, or getting back one of the operands
   apply: (n1, n2) => n1 - n2,
   cost: 1.05
 }, {
   op: "_", // also subtract, but backwards for when left is smaller than right
-  check: (n2, n1) => n1 > n2 && n2 > 0,
+  check: (n2, n1) => n1 > n2 && n2 > 0 && n1 - n2 !== n2,
   apply: (n2, n1) => n1 - n2,
   cost: 1.05
 }, {
@@ -20,12 +20,12 @@ export const operations = [{
   cost: 1.2
 }, {
   op: "/",
-  check: (n1, n2) => n2 > 1 && n1 % n2 === 0, // no sense in dividing by zero or one, and only whole numbers
+  check: (n1, n2) => n2 > 1 && n1 % n2 === 0 && n1 / n2 !== n2, // no sense in dividing by zero or one, and only whole numbers
   apply: (n1, n2) => n1 / n2,
   cost: 1.3
 }, {
   op: "?", // also divide, but backwards for when left is smaller than right
-  check: (n2, n1) => n2 > 1 && n1 % n2 === 0,
+  check: (n2, n1) => n2 > 1 && n1 % n2 === 0 && n1 / n2 !== n2,
   apply: (n2, n1) => n1 / n2,
   cost: 1.3
 }];
