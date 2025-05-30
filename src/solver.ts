@@ -3,13 +3,14 @@ import { Step } from './types';
 
 export const _solve_numbers = (
   numbers: number[],
-  target: number
+  target: number,
+  stopEarly: boolean = true
 ): Step => {
   const mappedNumbers = numbers.map(x => [x, false]);
   const wasGenerated = Array(numbers.length).fill(false);
   const alreadyUsed = Array(numbers.length).fill(false);
-  let bestValueSums: number = Number.MAX_SAFE_INTEGER;
   let bestResult: Step = [0, false] as Step;
+  let bestLowCost: number = Number.MAX_SAFE_INTEGER;
 
   const _recurse_solve_numbers = (
     _numbers,
@@ -45,7 +46,7 @@ export const _solve_numbers = (
 
           const {op, cost} = operation;
           const result = operation.apply(left[0], right[0]);
-          const resultWithOperation = [result, op, left, right];
+          const resultWithOperation: Step = [result, op, left, right];
 
           // calculate the cost of the operation
           let opCost = Math.abs(result);
@@ -58,23 +59,30 @@ export const _solve_numbers = (
             opCost *= cost;
           }
 
+          const distanceFromTarget = Math.abs(result - target);
+          if (distanceFromTarget === 0 && stopEarly) {
+            bestResult = resultWithOperation;
+            bestLowCost = valueSums + opCost;
+            return;
+          }
+
           const totalCost = valueSums + opCost;
           if (
-            Math.abs(result - target) < Math.abs(bestResult[0] - target) ||
+            distanceFromTarget < Math.abs(bestResult[0] - target) ||
             (
-              Math.abs(result - target) === Math.abs(bestResult[0] - target) &&
-              (totalCost < bestValueSums)
+              distanceFromTarget === Math.abs(bestResult[0] - target) &&
+              (totalCost < bestLowCost)
             )
           ) {
-            bestResult = resultWithOperation as Step;
-            bestValueSums = totalCost;
+            bestResult = resultWithOperation;
+            bestLowCost = totalCost;
           }
 
           _numbers[j] = resultWithOperation;
           const wasGeneratedJTemp = wasGenerated[j];
           wasGenerated[j] = true;
 
-          if (depth < _numbers.length - 1 && (bestResult[0] !== target || totalCost < bestValueSums)) {
+          if (depth < _numbers.length - 1 && (bestResult[0] !== target || totalCost < bestLowCost)) {
             _recurse_solve_numbers(_numbers, i + 1, depth + 1, totalCost);
           }
 
