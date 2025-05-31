@@ -17,7 +17,7 @@ const fullsize = (array: any[] | any) => {
   return array.reduce((sum, item) => sum + fullsize(item), array.length); // clever, I like starting with the length of the array
 };
 
-export const tidyUpStep = (step: Step) => {
+export const tidyUpStep = (step: Step): Step => {
   if (step.length < 4) {
     return step;
   }
@@ -38,18 +38,7 @@ export const tidyUpStep = (step: Step) => {
     }
   }
 
-  const mapping = {
-    "?": "/",
-    "_": "-"
-  };
-
-  if (stepOp in mapping) { // swap the operands for reversed operations
-    const j = step[2];
-    step[2] = step[3];
-    step[3] = j;
-    
-    step[1] = mapping[stepOp];
-  } else if (commutativeOps.includes(stepOp)) {
+  if (commutativeOps.includes(stepOp)) {
     const childs = step.slice(2).sort((a, b) => b[0] - a[0]);
     for (let i = 2; i < step.length; i++) {
       step[i] = childs[i - 2];

@@ -4,7 +4,7 @@ import { Step } from './types';
 export const _solve_numbers = (
   numbers: number[],
   target: number,
-  stopEarly: boolean = true
+  stopEarly: boolean = false
 ): Step => {
   const wasGenerated: boolean[] = Array(numbers.length).fill(false);
   const alreadyUsed: boolean[] = Array(numbers.length).fill(false);
@@ -12,27 +12,27 @@ export const _solve_numbers = (
   let bestLowCost: number = Number.MAX_SAFE_INTEGER;
 
   const _recurse_solve_numbers = (
-    _numbers: Step[],
+    steps: Step[],
     previousI: number = 0,
     depth: number = 0, // abort if too deep
     currentCostOfAllSteps: number = 0
   ) => {
-    if (depth >= _numbers.length){
+    if (depth >= steps.length){
       return;
     }
 
-    for (let i = 0; i < _numbers.length - 1; i++) {
+    for (let i = 0; i < steps.length - 1; i++) {
       if (alreadyUsed[i]) {
         continue;
       }
       alreadyUsed[i] = true;
-      const left = _numbers[i];
+      const left: Step = steps[i];
 
-      for (let j = i + 1; j < _numbers.length; j++) {
+      for (let j = i + 1; j < steps.length; j++) {
         if (alreadyUsed[j]) {
           continue;
         }
-        const right = _numbers[j];
+        const right: Step = steps[j];
 
         if (i < previousI && !wasGenerated[i] && !wasGenerated[j]) {
           continue;
@@ -43,24 +43,23 @@ export const _solve_numbers = (
             continue;
           }
 
-          const {op, cost: opCost} = operation;
-          const result = operation.apply(left[0], right[0]);
-          const resultWithOperation: Step = [result, op, left, right];
+          const opCost = operation.cost;
+          const result = operation.apply(left, right);
 
           // calculate the cost of the operation
-          let stepCost = Math.abs(result);
-          if ((left[0] === 10 || right[0] === 10) && operation.op === '*') {
-            stepCost = opCost;
+          let stepCost = Math.abs(result[0]);
+          if (left[0] === 100 || right[0] === 100) {
+            stepCost = 100; // if one of the inputs is 100, the cost is 100
           } else {
             while (stepCost % 10 === 0 && stepCost > 0) {
               stepCost /= 10;
             }
-            stepCost *= opCost;
           }
+          stepCost *= opCost;
 
-          const distanceFromTarget = Math.abs(result - target);
+          const distanceFromTarget = Math.abs(result[0] - target);
           if (distanceFromTarget === 0 && stopEarly) {
-            bestResult = resultWithOperation;
+            bestResult = result;
             bestLowCost = currentCostOfAllSteps + stepCost;
             return;
           }
@@ -71,20 +70,20 @@ export const _solve_numbers = (
             (distanceFromTarget < bestDistanceFromTarget) ||
             (distanceFromTarget === bestDistanceFromTarget && totalCost < bestLowCost)
           ) {
-            bestResult = resultWithOperation;
+            bestResult = result;
             bestLowCost = totalCost;
           }
 
-          _numbers[j] = resultWithOperation;
+          steps[j] = result;
           const wasGeneratedJTemp = wasGenerated[j];
           wasGenerated[j] = true;
 
-          if (depth < _numbers.length - 1 && (bestResult[0] !== target || totalCost < bestLowCost)) {
-            _recurse_solve_numbers(_numbers, i + 1, depth + 1, totalCost);
+          if (depth < steps.length - 1 && (bestResult[0] !== target || totalCost < bestLowCost)) {
+            _recurse_solve_numbers(steps, i + 1, depth + 1, totalCost);
           }
 
           wasGenerated[j] = wasGeneratedJTemp;
-          _numbers[j] = right;
+          steps[j] = right;
         }
       }
 
