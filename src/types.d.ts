@@ -1,9 +1,19 @@
 export type Step = [
-  number, // result of the operation
+  /** The plain value */
+  number,
+  
+  /** no operation; this is a plain value from the start */
   false,
 ] | [
-  number, // result of the operation
-  string, // operation symbol
-  Step, // left operand
-  Step, // right operand
+  /** The plain value */
+  number,
+
+  /** the operation to apply to the left and right operands */
+  string,
+
+  /** The left operand */
+  Step,
+
+  /** The right operand */
+  Step,
 ];

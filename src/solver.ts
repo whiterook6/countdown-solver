@@ -6,17 +6,16 @@ export const _solve_numbers = (
   target: number,
   stopEarly: boolean = true
 ): Step => {
-  const mappedNumbers = numbers.map(x => [x, false]);
-  const wasGenerated = Array(numbers.length).fill(false);
-  const alreadyUsed = Array(numbers.length).fill(false);
+  const wasGenerated: boolean[] = Array(numbers.length).fill(false);
+  const alreadyUsed: boolean[] = Array(numbers.length).fill(false);
   let bestResult: Step = [0, false] as Step;
   let bestLowCost: number = Number.MAX_SAFE_INTEGER;
 
   const _recurse_solve_numbers = (
-    _numbers,
+    _numbers: Step[],
     previousI: number = 0,
     depth: number = 0, // abort if too deep
-    valueSums: number = 0
+    currentCostOfAllSteps: number = 0
   ) => {
     if (depth >= _numbers.length){
       return;
@@ -44,35 +43,33 @@ export const _solve_numbers = (
             continue;
           }
 
-          const {op, cost} = operation;
+          const {op, cost: opCost} = operation;
           const result = operation.apply(left[0], right[0]);
           const resultWithOperation: Step = [result, op, left, right];
 
           // calculate the cost of the operation
-          let opCost = Math.abs(result);
+          let stepCost = Math.abs(result);
           if ((left[0] === 10 || right[0] === 10) && operation.op === '*') {
-            opCost = cost;
+            stepCost = opCost;
           } else {
-            while (opCost % 10 === 0 && opCost > 0) {
-              opCost /= 10;
+            while (stepCost % 10 === 0 && stepCost > 0) {
+              stepCost /= 10;
             }
-            opCost *= cost;
+            stepCost *= opCost;
           }
 
           const distanceFromTarget = Math.abs(result - target);
           if (distanceFromTarget === 0 && stopEarly) {
             bestResult = resultWithOperation;
-            bestLowCost = valueSums + opCost;
+            bestLowCost = currentCostOfAllSteps + stepCost;
             return;
           }
 
-          const totalCost = valueSums + opCost;
+          const totalCost = currentCostOfAllSteps + stepCost;
+          const bestDistanceFromTarget = Math.abs(bestResult[0] - target);
           if (
-            distanceFromTarget < Math.abs(bestResult[0] - target) ||
-            (
-              distanceFromTarget === Math.abs(bestResult[0] - target) &&
-              (totalCost < bestLowCost)
-            )
+            (distanceFromTarget < bestDistanceFromTarget) ||
+            (distanceFromTarget === bestDistanceFromTarget && totalCost < bestLowCost)
           ) {
             bestResult = resultWithOperation;
             bestLowCost = totalCost;
@@ -95,7 +92,7 @@ export const _solve_numbers = (
     }
   };
 
-  _recurse_solve_numbers(mappedNumbers);
+  _recurse_solve_numbers(numbers.map(x => [x, false]));
 
   return bestResult;
 }
